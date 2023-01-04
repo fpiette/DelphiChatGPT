@@ -1,11 +1,6 @@
 program ChatGptDemo;
 
 uses
-  madExcept,
-  madLinkDisAsm,
-  madListHardware,
-  madListProcesses,
-  madListModules,
   Vcl.Forms,
   ChatGptDemoMain in 'ChatGptDemoMain.pas' {ChatGptDemoMainForm};
 
