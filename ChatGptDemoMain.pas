@@ -300,7 +300,8 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure TChatGptDemoMainForm.AskButtonClick(Sender: TObject);
 var
-    PostData : UTF8String;
+    QObj     : ISuperObject;
+    QString  : UTF8String;
 begin
     if FApiKey = '' then begin
         FApiKey := Trim(InputBox('You need an API key', 'Your key', ''));
@@ -308,21 +309,20 @@ begin
             Exit;
     end;
 
+    // Build the JSON request to post to the API
+    // See the documentation: https://beta.openai.com/docs/introduction
     FQuestion := Trim(QuestionMemo.Text);
-    FQuestion := StringReplace(FQuestion, #13, '\r', [rfReplaceAll]);
-    FQuestion := StringReplace(FQuestion, #10, '\n', [rfReplaceAll]);
+    QObj := SO(['model',       'text-davinci-003',
+                'prompt',      FQuestion,
+                'max_tokens',  2048,
+                'temperature', 0]);
+    QString := QObj.AsJson;
 
-    PostData := UTF8Encode('{' +
-                                '"model": "text-davinci-003",'+
-                                '"prompt": "' + FQuestion + '",'+
-                                '"max_tokens": 2048,'+
-                                '"temperature": 0'+
-                            '}');
-    SslHttpCli1.RcvdStream := TMemoryStream.Create;
-    SslHttpCli1.SendStream := TMemoryStream.Create;
-    SslHttpCli1.SendStream.Write(PostData[1], Length(PostData));
-    SslHttpCli1.SendStream.Position := 0;
     SslHttpCli1.URL        := 'https://api.openai.com/v1/completions';
+    SslHttpCli1.RcvdStream := TMemoryStream.Create;  // For answer
+    SslHttpCli1.SendStream := TMemoryStream.Create;  // For post data
+    QObj.SaveTo(SslHttpCli1.SendStream);             // Set post data
+    SslHttpCli1.SendStream.Position := 0;            // Send from start!
     SslHttpCli1.ExtraHeaders.Clear;
     SslHttpCli1.ExtraHeaders.Add('Authorization: Bearer ' + FApiKey);
     SslHttpCli1.ExtraHeaders.Add('Content-Type: application/json');
